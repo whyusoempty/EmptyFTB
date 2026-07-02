@@ -26,6 +26,26 @@ function readJson(file) {
   }
 }
 
+// Сборки иногда содержат битые файлы (не JSON, не SNBT, обрезанные и т.п.) —
+// одна кривая правка автора не должна валить перевод всей остальной сборки.
+function tryReadJson(file, log) {
+  try {
+    return readJson(file);
+  } catch (e) {
+    log(`Пропускаю сломанный файл: ${e.message}`);
+    return null;
+  }
+}
+
+function tryParseSnbt(file, log) {
+  try {
+    return parse(readText(file));
+  } catch (e) {
+    log(`Пропускаю сломанный файл: ${file}: ${e.message}`);
+    return null;
+  }
+}
+
 function* walkFiles(dir, ext) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, e.name);
@@ -77,10 +97,11 @@ function questsPackPrefix(root, questsDir) {
   return rel;
 }
 
-function ftbqUnit(root, questsDir, lang, outOverride) {
+function ftbqUnit(root, questsDir, lang, outOverride, log) {
   if (exists(path.join(questsDir, "lang", "en_us.snbt"))) {
     const file = path.join(questsDir, "lang", "en_us.snbt");
-    const tree = parse(readText(file));
+    const tree = tryParseSnbt(file, log);
+    if (!tree) return null;
     const entries = extractLang(tree);
     return {
       label: "FTB Quests (новый формат, lang/en_us.snbt)",
@@ -102,10 +123,12 @@ function ftbqUnit(root, questsDir, lang, outOverride) {
   }
 
   if (exists(path.join(questsDir, "chapters"))) {
-    const files = collectInlineFiles(questsDir).map((file) => {
-      const tree = parse(readText(file));
-      return { file, tree, entries: extractInline(tree) };
-    });
+    const files = collectInlineFiles(questsDir)
+      .map((file) => {
+        const tree = tryParseSnbt(file, log);
+        return tree ? { file, tree, entries: extractInline(tree) } : null;
+      })
+      .filter(Boolean);
     const withText = files.filter((f) => f.entries.length);
     return {
       label: "FTB Quests (старый формат, текст в chapters/*.snbt)",
@@ -150,7 +173,7 @@ function extractJsonValues(node, pathAcc, entries, keyFilter = null) {
   }
 }
 
-function kubejsUnits(root, lang) {
+function kubejsUnits(root, lang, log) {
   const assets = path.join(root, "kubejs", "assets");
   if (!exists(assets)) return [];
   const units = [];
@@ -158,7 +181,8 @@ function kubejsUnits(root, lang) {
     if (!ns.isDirectory()) continue;
     const enFile = path.join(assets, ns.name, "lang", "en_us.json");
     if (!exists(enFile)) continue;
-    const json = readJson(enFile);
+    const json = tryReadJson(enFile, log);
+    if (!json) continue;
     const entries = [];
     extractJsonValues(json, [], entries);
     units.push({
@@ -208,7 +232,7 @@ const PATCHOULI_KEYS = new Set([
   "text",
 ]);
 
-function patchouliUnits(root, lang) {
+function patchouliUnits(root, lang, log) {
   const units = [];
   const bookRoots = [path.join(root, "patchouli_books"), path.join(root, "config", "patchouli_books")];
   for (const bookRoot of bookRoots) {
@@ -217,12 +241,15 @@ function patchouliUnits(root, lang) {
       if (!book.isDirectory()) continue;
       const enDir = path.join(bookRoot, book.name, "en_us");
       if (!exists(enDir)) continue;
-      const files = [...walkFiles(enDir, ".json")].map((file) => {
-        const json = readJson(file);
-        const entries = [];
-        extractJsonValues(json, [], entries, PATCHOULI_KEYS);
-        return { file, json, entries };
-      });
+      const files = [...walkFiles(enDir, ".json")]
+        .map((file) => {
+          const json = tryReadJson(file, log);
+          if (!json) return null;
+          const entries = [];
+          extractJsonValues(json, [], entries, PATCHOULI_KEYS);
+          return { file, json, entries };
+        })
+        .filter(Boolean);
       const withText = files.filter((f) => f.entries.length);
       if (!withText.length) continue;
       units.push({
@@ -256,11 +283,11 @@ export async function runJob({ input, lang, cfg, dry = false, out, log = console
   const units = [];
   const questsDir = findQuestsDir(root);
   if (questsDir) {
-    const u = ftbqUnit(root, questsDir, lang, out);
+    const u = ftbqUnit(root, questsDir, lang, out, log);
     if (u) units.push(u);
   }
-  units.push(...kubejsUnits(root, lang));
-  units.push(...patchouliUnits(root, lang));
+  units.push(...kubejsUnits(root, lang, log));
+  units.push(...patchouliUnits(root, lang, log));
   kubejsScriptWarning(root, log);
 
   if (!units.length) {
