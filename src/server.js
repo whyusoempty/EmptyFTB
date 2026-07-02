@@ -134,9 +134,20 @@ export function startServer(cfg, port = 3210) {
     }
   });
 
-  return new Promise((resolve) => {
+  const addr = `http://localhost:${port}`;
+  return new Promise((resolve, reject) => {
+    server.on("error", (err) => {
+      if (err.code === "EADDRINUSE") {
+        // сервер уже где-то запущен (второй клик по ярлыку и т.п.) — не крашимся,
+        // просто открываем браузер на уже работающий инстанс
+        console.log(`Мини-GUI уже запущена на ${addr} — открываю вкладку`);
+        if (process.platform === "win32") exec(`start "" "${addr}"`);
+        resolve(null);
+      } else {
+        reject(err);
+      }
+    });
     server.listen(port, "127.0.0.1", () => {
-      const addr = `http://localhost:${port}`;
       console.log(`Мини-GUI: ${addr} (Ctrl+C чтобы остановить)`);
       if (process.platform === "win32") exec(`start "" "${addr}"`);
       resolve(server);
