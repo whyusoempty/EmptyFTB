@@ -24,7 +24,7 @@ function parseArgs(argv) {
   return args;
 }
 
-const HELP = `EmptyFTB quest translator — перевод квестов FTB Quests через vibecode.moe
+const HELP = `EmptyFTB quest translator — перевод квестов FTB Quests, KubeJS-лангов и книг Patchouli через любой OpenAI- или Anthropic-совместимый API
 
 Команды:
   eftb translate <путь> [--lang ru_ru] [--model <id>] [--out <папка>] [--dry]
@@ -33,7 +33,8 @@ const HELP = `EmptyFTB quest translator — перевод квестов FTB Qu
   eftb models              список доступных моделей
   eftb ui [--port 3210]    мини-GUI в браузере
 
-Ключ API: config.json (apiKey) или переменная VIBECODE_API_KEY.`;
+Настройка провайдера: config.json (baseUrl, apiKey, apiFormat) или
+переменные окружения BASE_URL / API_KEY.`;
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));

@@ -1,7 +1,7 @@
 {
   "name": "emptyftb-quest-translator",
   "version": "0.1.0",
-  "description": "AI-переводчик квестов FTB Quests через vibecode.moe API",
+  "description": "AI-переводчик квестов FTB Quests, KubeJS-лангов и книг Patchouli через любой OpenAI- или Anthropic-совместимый API",
   "type": "module",
   "bin": {
     "eftb": "./src/cli.js"

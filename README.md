@@ -1,10 +1,9 @@
 # EmptyFTB quest translator
 
 AI-переводчик текстов Minecraft-модпаков: квесты FTB Quests, ланги KubeJS, книги
-Patchouli. Работает с любым OpenAI- или Anthropic-совместимым API (по умолчанию
-[vibecode.moe](https://vibecode.moe), но можно указать OpenAI, Anthropic,
-OpenRouter, локальный Ollama/LM Studio — что угодно). Без npm-зависимостей,
-нужен только Node.js 18+.
+Patchouli. Работает с любым OpenAI- или Anthropic-совместимым API — никакого
+дефолтного провайдера тут нет, ты сам указываешь `baseUrl` и ключ. Без
+npm-зависимостей, нужен только Node.js 18+.
 
 ## Запуск
 
@@ -14,12 +13,12 @@ OpenRouter, локальный Ollama/LM Studio — что угодно). Без
 
 ## Настройка API
 
-Вставь ключ в `config.json`:
+Скопируй `config.example.json` в `config.json` и заполни:
 
 ```json
 {
-  "apiKey": "vk-...",
-  "baseUrl": "https://vibecode.moe/v1",
+  "apiKey": "...",
+  "baseUrl": "https://api.openai.com/v1",
   "apiFormat": "auto",
   "model": "claude-sonnet-5"
 }
@@ -30,13 +29,14 @@ OpenRouter, локальный Ollama/LM Studio — что угодно). Без
   через OpenAI-формат (`/chat/completions`, `Authorization: Bearer`). Если у
   провайдера нестандартные имена моделей — задай `"openai"` или `"anthropic"`
   явно.
-- Ключ можно вместо файла положить в переменную окружения `API_KEY` (или
-  `VIBECODE_API_KEY` для обратной совместимости).
-- Любой другой провайдер — просто меняешь `baseUrl` и `apiKey`:
+- Ключ и baseUrl можно вместо файла положить в переменные окружения `API_KEY`
+  и `BASE_URL`.
+- Примеры `baseUrl` для разных провайдеров:
   - OpenAI: `https://api.openai.com/v1`
   - Anthropic: `https://api.anthropic.com/v1`
   - OpenRouter: `https://openrouter.ai/api/v1`
   - Локальный Ollama (OpenAI-совместимый режим): `http://localhost:11434/v1`
+  - Любой другой шлюз с OpenAI- или Anthropic-совместимым протоколом
 
 В мини-GUI то же самое можно сделать без правки файла — открой «Дополнительные
 настройки» и впиши свой Base URL / ключ / формат прямо в форме, это
@@ -82,9 +82,9 @@ node src/cli.js ui
 
 `--dry` (или кнопка «Прикинуть объём» в GUI) показывает не только объём текста,
 но и прикидку расхода — сколько строк ещё не в кэше, сколько батчей понадобится
-и во сколько это встанет на текущей модели и на паре более дешёвых для сравнения
-(claude-haiku-4-5, gemini-3-flash-preview, gpt-5.4-mini). Цифры приблизительные
-(±15-20%, точного токенизатора у нас нет), откалиброваны по боевым прогонам.
+и сколько примерно уйдёт токенов на вход/выход. Цифры приблизительные (±15-20%,
+точного токенизатора у нас нет) — сопоставляй их с тарифом своего провайдера
+самостоятельно, у каждого он свой.
 
 ## Батчинг
 

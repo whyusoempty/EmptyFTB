@@ -1,6 +1,6 @@
 {
-  "apiKey": "vk-...",
-  "baseUrl": "https://vibecode.moe/v1",
+  "apiKey": "sk-...",
+  "baseUrl": "https://api.openai.com/v1",
   "apiFormat": "auto",
   "model": "claude-sonnet-5",
   "temperature": 0.3,

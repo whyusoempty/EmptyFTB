@@ -1,6 +1,7 @@
-// Клиент для любого OpenAI- или Anthropic-совместимого API
-// (vibecode.moe по умолчанию, но подходит OpenAI, Anthropic, OpenRouter,
-// локальный Ollama/LM Studio — что угодно с /chat/completions или /messages).
+// Клиент для любого OpenAI- или Anthropic-совместимого API: OpenAI, Anthropic,
+// OpenRouter, локальный Ollama/LM Studio, любой другой шлюз с тем же
+// протоколом — baseUrl и формат полностью настраиваются, дефолтного
+// провайдера тут нет.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const DEFAULTS = {
-  baseUrl: "https://vibecode.moe/v1",
+  baseUrl: "",
   apiKey: "",
   apiFormat: "auto", // "auto" | "openai" | "anthropic"
   model: "claude-sonnet-5",
@@ -25,19 +26,24 @@ export function loadConfig() {
     Object.assign(cfg, JSON.parse(fs.readFileSync(file, "utf8")));
   }
   if (process.env.API_KEY) cfg.apiKey = process.env.API_KEY;
-  else if (process.env.VIBECODE_API_KEY) cfg.apiKey = process.env.VIBECODE_API_KEY;
+  if (process.env.BASE_URL) cfg.baseUrl = process.env.BASE_URL;
+  if (!cfg.baseUrl) {
+    throw new Error(
+      "Не указан baseUrl провайдера: задай его в config.json (поле baseUrl), например https://api.openai.com/v1 или https://api.anthropic.com/v1"
+    );
+  }
   if (!cfg.apiKey) {
     throw new Error(
-      "Нет API-ключа: положи его в config.json (поле apiKey) или в переменную API_KEY"
+      "Нет API-ключа: положи его в config.json (поле apiKey) или в переменную окружения API_KEY"
     );
   }
   return cfg;
 }
 
-// "auto" угадывает по имени модели: у vibecode (и у самого Anthropic) клоды
-// живут только на /v1/messages, всё остальное — на /chat/completions.
-// Явно задать apiFormat нужно, если провайдер называет модели иначе
-// (например прокси/локальный сервер с anthropic-style API под другим именем).
+// "auto" угадывает по имени модели: claude-* почти везде живёт только на
+// /v1/messages (Anthropic-формат), всё остальное — на /chat/completions
+// (OpenAI-формат). Явно задать apiFormat нужно, если провайдер называет
+// модели иначе (например свой прокси с anthropic-style API под другим именем).
 function resolveFormat(cfg) {
   if (cfg.apiFormat === "openai" || cfg.apiFormat === "anthropic") return cfg.apiFormat;
   return /^claude/i.test(cfg.model) ? "anthropic" : "openai";
