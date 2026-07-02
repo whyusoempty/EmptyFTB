@@ -1,0 +1,10 @@
+{
+  "apiKey": "vk-...",
+  "baseUrl": "https://vibecode.moe/v1",
+  "apiFormat": "auto",
+  "model": "claude-sonnet-5",
+  "temperature": 0.3,
+  "concurrency": 3,
+  "batchMaxItems": 30,
+  "batchMaxChars": 4000
+}

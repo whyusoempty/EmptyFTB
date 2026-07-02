@@ -1,0 +1,16 @@
+{
+  "name": "emptyftb-quest-translator",
+  "version": "0.1.0",
+  "description": "AI-переводчик квестов FTB Quests через vibecode.moe API",
+  "type": "module",
+  "bin": {
+    "eftb": "./src/cli.js"
+  },
+  "scripts": {
+    "ui": "node src/cli.js ui",
+    "models": "node src/cli.js models"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
