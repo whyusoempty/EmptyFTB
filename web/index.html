@@ -6,20 +6,22 @@
 <title>EmptyFTB — переводчик квестов</title>
 <style>
   :root {
-    --bg: #FBFBFA;
-    --surface: #FFFFFF;
-    --surface-2: #F7F6F3;
-    --border: #EAEAEA;
-    --text: #111111;
-    --muted: #787774;
-    --accent-text: #1F6C9F;
-    --accent-bg: #E1F3FE;
-    --ok-text: #346538;
-    --ok-bg: #EDF3EC;
-    --warn-text: #956400;
-    --warn-bg: #FBF3DB;
-    --err-text: #9F2F2D;
-    --err-bg: #FDEBEC;
+    --bg: #0B0B0D;
+    --surface: #17171B;
+    --surface-2: #1D1D22;
+    --border: #2B2B31;
+    --border-hover: #3C3C44;
+    --text: #ECECEE;
+    --muted: #8B8B93;
+    --placeholder: #55555D;
+    --accent-text: #7FB8E8;
+    --accent-bg: rgba(127, 184, 232, 0.14);
+    --ok-text: #7ED396;
+    --ok-bg: rgba(56, 150, 90, 0.16);
+    --warn-text: #E8C15C;
+    --warn-bg: rgba(180, 140, 20, 0.16);
+    --err-text: #F29892;
+    --err-bg: rgba(180, 60, 55, 0.18);
     --font-serif: 'Newsreader', 'Instrument Serif', Georgia, serif;
     --font-sans: 'Helvetica Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Consolas, monospace;
@@ -54,7 +56,7 @@
     font: 600 12px var(--font-sans); padding: 7px 14px; border-radius: var(--radius-sm);
     cursor: pointer; white-space: nowrap;
   }
-  .btn-ghost:hover { color: var(--text); border-color: #D8D8D6; }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border-hover); }
 
   .window {
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -64,7 +66,7 @@
     display: flex; align-items: center; gap: 6px; padding: 11px 16px;
     background: var(--surface-2); border-bottom: 1px solid var(--border);
   }
-  .window-chrome .dot { width: 9px; height: 9px; border-radius: 50%; background: #DCDCDA; }
+  .window-chrome .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border-hover); }
   .chrome-title {
     margin-left: 8px; font: 12px var(--font-mono); color: var(--muted);
   }
@@ -81,13 +83,37 @@
     border: 1px solid var(--border); border-radius: var(--radius-sm);
     font: 14px var(--font-mono); outline: none;
   }
-  input::placeholder { color: #B9B9B6; font-family: var(--font-sans); }
-  input:focus, select:focus { border-color: #C6C6C3; }
+  input::placeholder { color: var(--placeholder); font-family: var(--font-sans); }
+  input:focus, select:focus { border-color: var(--border-hover); }
   select { font-family: var(--font-sans); }
   .row { display: flex; gap: 12px; }
   .row > div { flex: 1; }
   .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
   .hint.err { color: var(--err-text); }
+
+  /* custom model combobox — native <input list=datalist> renders unreliably
+     across browsers (empty/unclickable popup), so this is hand-rolled */
+  .combo { position: relative; }
+  .combo input { padding-right: 34px; }
+  .combo-toggle {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    width: 26px; height: 26px; border: none; background: none; cursor: pointer;
+    color: var(--muted); display: flex; align-items: center; justify-content: center;
+  }
+  .combo-toggle:hover { color: var(--text); }
+  .combo-list {
+    display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    max-height: 220px; overflow-y: auto; z-index: 5;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  }
+  .combo-list.open { display: block; }
+  .combo-option {
+    padding: 8px 12px; font: 13px var(--font-mono); color: var(--text);
+    cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .combo-option:hover, .combo-option.active { background: var(--surface-2); }
+  .combo-empty { padding: 8px 12px; font: 13px var(--font-sans); color: var(--muted); }
 
   .key-field { position: relative; }
   .key-field input { padding-right: 40px; }
@@ -102,17 +128,17 @@
   button.primary {
     padding: 10px 18px; border: none; border-radius: var(--radius-sm);
     font: 600 14px var(--font-sans); cursor: pointer;
-    background: var(--text); color: #FFFFFF; flex: 1;
+    background: var(--text); color: var(--bg); flex: 1;
   }
-  button.primary:hover { background: #333333; }
+  button.primary:hover { background: #D6D6DA; }
   button.primary:active { transform: scale(0.98); }
   button.primary:disabled { background: var(--border); color: var(--muted); cursor: default; transform: none; }
   button.secondary {
     padding: 10px 18px; border: 1px solid var(--border); border-radius: var(--radius-sm);
     background: none; color: var(--muted); font: 600 14px var(--font-sans); cursor: pointer;
   }
-  button.secondary:hover { color: var(--text); border-color: #D8D8D6; }
-  button.secondary:disabled { color: #C9C9C6; cursor: default; }
+  button.secondary:hover { color: var(--text); border-color: var(--border-hover); }
+  button.secondary:disabled { color: var(--placeholder); cursor: default; }
 
   /* accordion (advanced settings + faq) */
   .acc-item { border-top: 1px solid var(--border); }
@@ -145,7 +171,7 @@
     background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
     padding: 12px; margin-top: 14px; max-height: 320px; overflow-y: auto;
     font: 12px/1.6 var(--font-mono); white-space: pre-wrap; word-break: break-word;
-    color: #55534F;
+    color: #A6A6AE;
   }
   #log .ok { color: var(--ok-text); }
   #log .err { color: var(--err-text); }
@@ -156,7 +182,7 @@
 
   /* faq modal */
   .overlay {
-    position: fixed; inset: 0; background: rgba(17,17,17,0.28);
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
     display: flex; align-items: flex-start; justify-content: center;
     padding: 72px 20px; overflow-y: auto; z-index: 10;
   }
@@ -177,7 +203,7 @@
   .icon-btn:hover { color: var(--text); }
   .modal-body { padding: 6px 24px 20px; }
   .modal-body .acc-item:first-of-type { border-top: none; }
-  .modal-body p { margin: 0; color: #3A3A38; line-height: 1.6; }
+  .modal-body p { margin: 0; color: #C7C7CC; line-height: 1.6; }
 
   kbd {
     border: 1px solid var(--border); border-radius: 4px; background: var(--surface-2);
@@ -210,8 +236,13 @@
         </div>
         <div>
           <label>Модель</label>
-          <input id="model" list="models-list" placeholder="claude-sonnet-5" spellcheck="false">
-          <datalist id="models-list"></datalist>
+          <div class="combo" id="model-combo">
+            <input id="model" placeholder="claude-sonnet-5" spellcheck="false" autocomplete="off">
+            <button class="combo-toggle" id="model-toggle" type="button" title="Список моделей">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="combo-list" id="model-list"></div>
+          </div>
         </div>
       </div>
       <div class="hint" id="models-hint"></div>
@@ -379,6 +410,50 @@ async function loadDefaults() {
   await refreshModels();
 }
 
+// ---- custom model combobox (native <input list=datalist> popups render
+// unreliably / are unclickable across browsers, so this is hand-rolled) ----
+let allModels = [];
+const modelInput = $("model");
+const modelList = $("model-list");
+
+function renderModelOptions(filter) {
+  const q = (filter || "").toLowerCase();
+  const matches = q ? allModels.filter((m) => m.toLowerCase().includes(q)) : allModels;
+  modelList.innerHTML = "";
+  if (!matches.length) {
+    modelList.innerHTML = '<div class="combo-empty">Ничего не найдено — можно вписать имя модели вручную</div>';
+    return;
+  }
+  for (const m of matches.slice(0, 200)) {
+    const opt = document.createElement("div");
+    opt.className = "combo-option";
+    opt.textContent = m;
+    opt.onclick = () => {
+      modelInput.value = m;
+      closeModelList();
+      modelInput.focus();
+    };
+    modelList.appendChild(opt);
+  }
+}
+function openModelList() {
+  if (!allModels.length) return;
+  renderModelOptions("");
+  modelList.classList.add("open");
+}
+function closeModelList() {
+  modelList.classList.remove("open");
+}
+$("model-toggle").addEventListener("click", () => {
+  modelList.classList.contains("open") ? closeModelList() : openModelList();
+});
+modelInput.addEventListener("input", () => { renderModelOptions(modelInput.value); modelList.classList.add("open"); });
+modelInput.addEventListener("focus", openModelList);
+document.addEventListener("click", (e) => {
+  if (!$("model-combo").contains(e.target)) closeModelList();
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModelList(); });
+
 async function refreshModels() {
   const res = await fetch("/api/models", {
     method: "POST",
@@ -386,20 +461,14 @@ async function refreshModels() {
     body: JSON.stringify(apiOverrides()),
   });
   const data = await res.json();
-  const dl = $("models-list");
-  dl.innerHTML = "";
-  for (const m of data.models || []) {
-    const opt = document.createElement("option");
-    opt.value = m;
-    dl.appendChild(opt);
-  }
-  if (!$("model").value && data.default) $("model").value = data.default;
+  allModels = data.models || [];
+  if (!modelInput.value && data.default) modelInput.value = data.default;
   const hint = $("models-hint");
   if (data.error) {
     hint.textContent = "Не удалось получить список моделей: " + data.error + " (модель можно вписать вручную)";
     hint.classList.add("err");
-  } else if (data.models && data.models.length) {
-    hint.textContent = data.models.length + " моделей доступно у этого провайдера";
+  } else if (allModels.length) {
+    hint.textContent = allModels.length + " моделей доступно у этого провайдера";
     hint.classList.remove("err");
   }
 }
