@@ -13,6 +13,10 @@ function exists(p) {
   return fs.existsSync(p);
 }
 
+function timestamp() {
+  return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
 // файлы в сборках бывают с BOM — срезаем перед парсингом
 function readText(file) {
   return fs.readFileSync(file, "utf8").replace(/^﻿/, "");
@@ -130,28 +134,49 @@ function ftbqUnit(root, questsDir, lang, outOverride, log) {
       })
       .filter(Boolean);
     const withText = files.filter((f) => f.entries.length);
+    // Старый формат хранит текст прямо в файле — нет отдельного lang-файла,
+    // который игра подхватила бы сама по выбранному языку. Единственный
+    // способ увидеть перевод в игре — переписать сами файлы квестов.
+    // По умолчанию делаем это на месте (с автобэкапом оригинала); --out
+    // остаётся ручным способом вывести перевод в отдельную папку для обзора.
+    const backupDir = `${questsDir}-backup-en-${timestamp()}`;
     return {
       label: "FTB Quests (старый формат, текст в chapters/*.snbt)",
       entries: withText.flatMap((f) => f.entries),
       apply(tr) {
-        const outDir = outOverride
-          ? path.resolve(outOverride)
-          : `${questsDir}-translated-${lang}`;
         const written = [];
+        if (outOverride) {
+          const outDir = path.resolve(outOverride);
+          for (const { file, tree, entries } of withText) {
+            for (const e of entries) applyAt(tree, e.path, tr.get(e.text) ?? e.text);
+            const rel = path.relative(questsDir, file);
+            const outFile = path.join(outDir, rel);
+            fs.mkdirSync(path.dirname(outFile), { recursive: true });
+            fs.writeFileSync(outFile, stringify(tree) + "\n", "utf8");
+            written.push({
+              file: outFile,
+              packPath: path.join(questsPackPrefix(root, questsDir), rel),
+            });
+          }
+          return written;
+        }
         for (const { file, tree, entries } of withText) {
           for (const e of entries) applyAt(tree, e.path, tr.get(e.text) ?? e.text);
           const rel = path.relative(questsDir, file);
-          const outFile = path.join(outDir, rel);
-          fs.mkdirSync(path.dirname(outFile), { recursive: true });
-          fs.writeFileSync(outFile, stringify(tree) + "\n", "utf8");
+          const backupFile = path.join(backupDir, rel);
+          fs.mkdirSync(path.dirname(backupFile), { recursive: true });
+          fs.copyFileSync(file, backupFile); // оригинал (английский) — до перезаписи
+          fs.writeFileSync(file, stringify(tree) + "\n", "utf8");
           written.push({
-            file: outFile,
+            file,
             packPath: path.join(questsPackPrefix(root, questsDir), rel),
           });
         }
         return written;
       },
-      note: "Скопируй содержимое поверх оригинальной папки quests (бэкап оригинала сделай сам).",
+      note: outOverride
+        ? "Скопируй содержимое поверх оригинальной папки quests (бэкап оригинала сделай сам)."
+        : `Квесты переписаны на месте — игра подхватит перевод сразу. Оригинал (английский) сохранён в ${backupDir}.`,
     };
   }
 
