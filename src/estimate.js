@@ -4,15 +4,23 @@
 // сопоставляй эти числа с тарифом своего провайдера самостоятельно — у
 // каждого он свой (доллары за токен, «баланс» и т.п.).
 //
-// Константы откалиброваны по двум боевым прогонам на claude-sonnet-5:
-//   396 уникальных строк / 25503 симв
-//   2091 уникальная строка / 96963 симв
+// Константы для латиницы/кириллицы откалиброваны по двум боевым прогонам
+// на claude-sonnet-5 (ru_ru): 396 строк/25503 симв и 2091 строка/96963 симв.
 import { systemPrompt, makeBatches, cacheKey, loadCache } from "./translate.js";
 
 const CHARS_PER_TOKEN_EN = 4; // исходный (английский) текст + служебный JSON
-const CHARS_PER_TOKEN_RU = 2.3; // кириллица кодируется гораздо плотнее токенами
 const JSON_OVERHEAD = 1.12; // кавычки/запятые/скобки массива
-const RU_EXPANSION = 1.15; // русский текст обычно на ~15% длиннее английского
+
+// Профили плотности вывода по целевому языку: сколько символов перевода на
+// токен и во сколько раз перевод длиннее английского оригинала по символам.
+const CJK = { charsPerToken: 1.6, expansion: 0.45 }; // иероглифы: коротко по символам, дорого по токенам
+const DEFAULT_PROFILE = { charsPerToken: 2.3, expansion: 1.15 }; // латиница/кириллица
+
+function outputProfile(lang) {
+  const l = lang.toLowerCase();
+  if (/^(zh|ja|ko|th)_/.test(l)) return CJK;
+  return DEFAULT_PROFILE;
+}
 
 // entries: [{ text }], уже объединённые по всем юнитам сборки.
 export function estimateTokens(lang, entries, cfg) {
@@ -27,13 +35,14 @@ export function estimateTokens(lang, entries, cfg) {
     cfg.batchMaxChars
   );
   const sysChars = systemPrompt(lang).length;
+  const { charsPerToken, expansion } = outputProfile(lang);
 
   let inputTokens = 0;
   let outputTokens = 0;
   for (const batch of batches) {
     const chars = batch.reduce((n, b) => n + b.text.length, 0);
     inputTokens += sysChars / CHARS_PER_TOKEN_EN + (chars * JSON_OVERHEAD) / CHARS_PER_TOKEN_EN;
-    outputTokens += (chars * RU_EXPANSION * JSON_OVERHEAD) / CHARS_PER_TOKEN_RU;
+    outputTokens += (chars * expansion * JSON_OVERHEAD) / charsPerToken;
   }
 
   return {

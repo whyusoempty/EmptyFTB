@@ -11,12 +11,40 @@ const CACHE_DIR = path.join(ROOT, ".cache");
 const LANG_NAMES = {
   ru_ru: "Russian",
   uk_ua: "Ukrainian",
+  be_by: "Belarusian",
   de_de: "German",
   fr_fr: "French",
   es_es: "Spanish",
+  es_mx: "Latin American Spanish",
   pt_br: "Brazilian Portuguese",
+  pt_pt: "European Portuguese",
+  it_it: "Italian",
   pl_pl: "Polish",
+  cs_cz: "Czech",
+  sk_sk: "Slovak",
+  nl_nl: "Dutch",
+  sv_se: "Swedish",
+  da_dk: "Danish",
+  fi_fi: "Finnish",
+  nb_no: "Norwegian",
+  tr_tr: "Turkish",
+  ro_ro: "Romanian",
+  hu_hu: "Hungarian",
+  el_gr: "Greek",
+  bg_bg: "Bulgarian",
+  sr_sp: "Serbian",
+  hr_hr: "Croatian",
+  ar_sa: "Arabic",
+  he_il: "Hebrew",
+  fa_ir: "Persian",
+  hi_in: "Hindi",
+  th_th: "Thai",
+  vi_vn: "Vietnamese",
+  id_id: "Indonesian",
+  ja_jp: "Japanese",
+  ko_kr: "Korean",
   zh_cn: "Simplified Chinese",
+  zh_tw: "Traditional Chinese",
 };
 
 function langName(lang) {
@@ -95,15 +123,13 @@ async function translateBatch(cfg, lang, texts, log) {
     { role: "system", content: systemPrompt(lang) },
     { role: "user", content: JSON.stringify(texts) },
   ];
-  let lastErr;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const content = await chat(cfg, messages);
       return parseArrayResponse(content, texts.length);
     } catch (e) {
-      lastErr = e;
-      log(`  повтор ${attempt}/3: ${e.message.slice(0, 200)}`);
-      await new Promise((r) => setTimeout(r, 1500 * attempt));
+      log(`  попытка ${attempt}/3 не удалась: ${e.message.slice(0, 200)}`);
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 1500 * attempt));
     }
   }
   // батч не осилили целиком — делим пополам; единичный фейл помечаем null
@@ -136,14 +162,24 @@ export function makeBatches(items, maxItems, maxChars) {
 }
 
 // entries: [{ text, ... }] -> Map<text, перевод>. onProgress({done, total}).
-export async function translateAll(cfg, lang, entries, { log = console.log, onProgress = () => {} } = {}) {
+// fresh: игнорировать уже накопленные переводы и перевести всё заново
+// (например если предыдущий прогон был плохой моделью). Кэш при этом
+// перезапишется свежими переводами.
+export async function translateAll(
+  cfg,
+  lang,
+  entries,
+  { log = console.log, onProgress = () => {}, fresh = false } = {}
+) {
+  // Кэш всегда грузим целиком, чтобы финальное сохранение не потеряло переводы
+  // других сборок того же языка. При fresh просто не используем его для поиска.
   const cache = loadCache(lang);
   const result = new Map();
 
   const uniqueTexts = [...new Set(entries.map((e) => e.text))];
   const pending = [];
   for (const text of uniqueTexts) {
-    const cached = cache.get(cacheKey(lang, text));
+    const cached = fresh ? undefined : cache.get(cacheKey(lang, text));
     if (cached !== undefined) result.set(text, cached);
     else pending.push({ text });
   }
@@ -181,7 +217,8 @@ export async function translateAll(cfg, lang, entries, { log = console.log, onPr
     }
   }
 
-  const workers = Array.from({ length: Math.min(cfg.concurrency, batches.length) }, worker);
+  const concurrency = Math.max(1, cfg.concurrency || 1);
+  const workers = Array.from({ length: Math.min(concurrency, batches.length) }, worker);
   await Promise.all(workers);
   saveCache(lang, cache);
   return result;

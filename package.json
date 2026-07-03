@@ -1,6 +1,6 @@
 {
   "name": "emptyftb-quest-translator",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "AI-переводчик квестов FTB Quests, KubeJS-лангов и книг Patchouli через любой OpenAI- или Anthropic-совместимый API",
   "type": "module",
   "bin": {

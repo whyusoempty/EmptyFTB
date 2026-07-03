@@ -300,7 +300,7 @@ function patchouliUnits(root, lang, log) {
 
 // ---------- запуск ----------
 
-export async function runJob({ input, lang, cfg, dry = false, out, log = console.log, onProgress }) {
+export async function runJob({ input, lang, cfg, dry = false, out, fresh = false, log = console.log, onProgress }) {
   const root = path.resolve(input);
   if (!exists(root)) throw new Error(`Папка не найдена: ${root}`);
   lang = lang.toLowerCase();
@@ -342,7 +342,7 @@ export async function runJob({ input, lang, cfg, dry = false, out, log = console
     return { units: units.length, entries: 0 };
   }
 
-  const translations = await translateAll(cfg, lang, allEntries, { log, onProgress });
+  const translations = await translateAll(cfg, lang, allEntries, { log, onProgress, fresh });
 
   const written = [];
   let outDir = null;

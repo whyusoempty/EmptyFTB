@@ -27,9 +27,10 @@ function parseArgs(argv) {
 const HELP = `EmptyFTB quest translator — перевод квестов FTB Quests, KubeJS-лангов и книг Patchouli через любой OpenAI- или Anthropic-совместимый API
 
 Команды:
-  eftb translate <путь> [--lang ru_ru] [--model <id>] [--out <папка>] [--dry]
+  eftb translate <путь> [--lang ru_ru] [--model <id>] [--out <папка>] [--dry] [--fresh]
       <путь> — корень сборки или config/ftbquests/quests
-      --dry  — только посчитать строки, без перевода
+      --dry   — только посчитать строки и оценить объём, без перевода
+      --fresh — игнорировать кэш и перевести всё заново (например после смены модели)
   eftb models              список доступных моделей
   eftb ui [--port 3210]    мини-GUI в браузере
 
@@ -68,7 +69,7 @@ async function main() {
     const cfg = loadConfig();
     if (args.model) cfg.model = args.model;
     const lang = (args.lang ?? "ru_ru").toLowerCase();
-    await runJob({ input, lang, cfg, dry: !!args.dry, out: args.out });
+    await runJob({ input, lang, cfg, dry: !!args.dry, out: args.out, fresh: !!args.fresh });
     return;
   }
 

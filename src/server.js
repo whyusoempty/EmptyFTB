@@ -117,6 +117,7 @@ export function startServer(cfg, port = 3210) {
           lang: (body.lang || "ru_ru").toLowerCase(),
           cfg: jobCfg,
           dry: !!body.dry,
+          fresh: !!body.fresh,
           log: (line) => broadcast("log", { line }),
           onProgress: (p) => broadcast("progress", p),
         })

@@ -91,6 +91,13 @@
   .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
   .hint.err { color: var(--err-text); }
 
+  .check-row {
+    display: flex; align-items: center; gap: 9px; margin: 18px 0 0;
+    color: var(--text); font-size: 13px; font-weight: 400;
+    text-transform: none; letter-spacing: 0; cursor: pointer;
+  }
+  .check-row input { width: auto; margin: 0; accent-color: var(--accent-text); cursor: pointer; }
+
   /* custom model combobox — native <input list=datalist> renders unreliably
      across browsers (empty/unclickable popup), so this is hand-rolled */
   .combo { position: relative; }
@@ -290,6 +297,12 @@
               </div>
             </div>
             <div class="hint">Больше — меньше запросов и оверхеда на промпт, но выше риск, что модель обрежет длинный ответ.</div>
+
+            <label class="check-row">
+              <input id="fresh" type="checkbox">
+              <span>Переводить заново, игнорируя кэш</span>
+            </label>
+            <div class="hint">Пригодится, если прошлый прогон был неудачной моделью — иначе из кэша вернутся старые переводы.</div>
           </div>
         </div>
       </div>
@@ -349,7 +362,7 @@ const FAQ = [
   ["Какие провайдеры подойдут?", "Любой OpenAI- или Anthropic-совместимый: сам OpenAI, сам Anthropic, OpenRouter, локальный Ollama/LM Studio с OpenAI-совместимым режимом, или любой другой шлюз с тем же протоколом. Задай Base URL и ключ в разделе «Дополнительные настройки»."],
   ["Что такое batchMaxItems / batchMaxChars?", "Сколько строк и сколько символов суммарно уходит в одном запросе к модели. Дефолт 30 строк / 4000 символов — разумный баланс между числом запросов и риском, что модель собьётся на длинном ответе."],
   ["Куда сохраняется перевод?", "Для KubeJS-лангов, Patchouli и нового формата FTB Quests — рядом с оригиналом (lang/ru_ru.snbt, kubejs/assets/.../ru_ru.json и т.п.), игра сама подбирает файл по выбранному языку. У старого формата FTB Quests (текст зашит прямо в файл, без lang-файла) тулза переписывает chapters/*.snbt на месте, а оригинал автоматически бэкапит рядом в quests-backup-en-<дата>/. Плюс в корне сборки появляется translation-<lang>.zip — раздай его друзьям, они распаковывают его прямо в свою папку .minecraft."],
-  ["Почему повторный прогон почти мгновенный?", "Уже переведённые строки лежат в .cache/ и повторно в API не отправляются — платишь только за новый текст."],
+  ["Почему повторный прогон почти мгновенный?", "Уже переведённые строки лежат в .cache/ и повторно в API не отправляются — платишь только за новый текст. Если прошлый перевод был неудачной моделью и хочется переделать — включи «Переводить заново, игнорируя кэш» в «Дополнительных настройках»."],
   ["Нужной модели нет в списке — что делать?", "Просто впиши её имя в поле «Модель» руками, сервер передаст его в API как есть, даже если модель не попала в список /models."],
 ];
 const faqBody = $("faq-body");
@@ -531,6 +544,7 @@ async function run(dry) {
       lang: $("lang").value.trim(),
       model: $("model").value.trim(),
       dry,
+      fresh: $("fresh").checked,
       ...apiOverrides(),
       ...batchOverrides(),
     }),
